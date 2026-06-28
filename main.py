@@ -1,14 +1,12 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from groq import Groq
-import os
+from dotenv import load_dotenv
+load_dotenv()
 
 
 app = FastAPI()
-
-client = Groq(
-    api_key=os.environ.get("GROQ_API_KEY"),
-)
+client = Groq()
 
 
 
@@ -18,6 +16,9 @@ class EchoItem(BaseModel):
 class SummarizeRequest(BaseModel):
     text: str
 
+class TranslateMessage(BaseModel):
+    text: str
+    language: str
     
 @app.get("/")
 async def root():
@@ -43,6 +44,25 @@ async def summarize_text(item: SummarizeRequest):
         )
 
         return {"summary":chat_completion.choices[0].message.content}
+
+    except Exception as e:  
+        raise HTTPException(status_code=500, detail=f"LLM CALL FAILED: {str(e)}")
+
+
+@app.post("/translate")
+async def translate_text(item: TranslateMessage):
+    try:
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"Translate The Following text to {item.language}: {item.text}",
+                }
+            ],
+            model="llama-3.3-70b-versatile",
+        )
+
+        return {"translation":chat_completion.choices[0].message.content}
 
     except Exception as e:  
         raise HTTPException(status_code=500, detail=f"LLM CALL FAILED: {str(e)}")
