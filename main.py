@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from groq import Groq
 from dotenv import load_dotenv
 load_dotenv()
@@ -11,14 +11,14 @@ client = Groq()
 
 
 class EchoItem(BaseModel):
-    text: str
+    text: str = Field(min_length=1)
 
 class SummarizeRequest(BaseModel):
-    text: str
+    text: str = Field(min_length=1)
 
 class TranslateMessage(BaseModel):
-    text: str
-    language: str
+    text: str = Field(min_length=1)
+    language: str = Field(min_length=2)
     
 @app.get("/")
 async def root():
@@ -27,7 +27,7 @@ async def root():
 
 @app.post("/echo")
 async def echo_back(item: EchoItem):
-    return item.text
+    return {"text": item.text}
 
 
 @app.post("/summarize")
