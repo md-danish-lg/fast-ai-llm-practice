@@ -1,14 +1,23 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from groq import Groq
+import chromadb
 from dotenv import load_dotenv
 load_dotenv()
 
 
 app = FastAPI()
 client = Groq()
+chroma_client = chromadb.Client()
+collection = chroma_client.create_collection("repair_collection")
 
+class RepairHistory(BaseModel):
+    repair_id: str = Field(min_length=1)
+    text: str = Field(min_length=1)
 
+class RepairHistoryQuery(BaseModel):
+    query: str = Field(min_length=1)
+    no_results: int
 
 class EchoItem(BaseModel):
     text: str = Field(min_length=1)
@@ -69,6 +78,20 @@ async def translate_text(item: TranslateMessage):
 
 
 
-    
+@app.post("/repair-history/add")
+async def add_repair_history(item: RepairHistory):
+    collection.add(
+        documents=[item.text],
+        ids=[item.repair_id]
+    )
+
+
+
+@app.post("/repair-history/search")
+async def search_repair_history(item: RepairHistoryQuery):
+    results = collection.query(query_texts=[item.query], n_results=item.no_results)
+    return {"result": results['documents'][0]}
+
+
 
 
